@@ -13,6 +13,11 @@ export const options: INodeProperties[] = [
         description: 'When a message is sent in the selected channels',
       },
       {
+        name: 'Direct Message',
+        value: 'direct-message',
+        description: 'When a direct message is sent to the bot',
+      },
+      {
 				name: 'Reaction Add',
 				value: 'message-reaction-add',
 				description: 'When a reaction is added to a message on the server',
@@ -60,6 +65,9 @@ export const options: INodeProperties[] = [
       show: {
         type: ['message', 'user-join', 'user-leave', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update'],
       },
+      hide: {
+        type: ['direct-message'],
+      },
     },
     typeOptions: {
       loadOptionsMethod: 'getGuilds',
@@ -80,6 +88,9 @@ export const options: INodeProperties[] = [
       show: {
         type: ['message', 'message-reaction-add', 'message-reaction-remove'],
       },
+      hide: {
+        type: ['direct-message'],
+      },
     },
     default: [],
     description: 'Lets you select the text channels you want to listen to for triggering the workflow. If none selected, all channels will be listen to. Your credentials must be set and the bot running, you also need at least one text channel available. If you do not meet these requirements, make the changes then close and reopen the modal (the channels list is loaded when the modal opens). Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
@@ -93,6 +104,9 @@ export const options: INodeProperties[] = [
     displayOptions: {
       show: {
         type: ['message', 'message-reaction-add', 'message-reaction-remove'],
+      },
+      hide: {
+        type: ['direct-message'],
       },
     },
     typeOptions: {
@@ -122,7 +136,7 @@ export const options: INodeProperties[] = [
     type: 'options',
     displayOptions: {
       show: {
-        type: ['message'],
+        type: ['message', 'direct-message'],
       },
     },
     options: [
@@ -130,7 +144,7 @@ export const options: INodeProperties[] = [
         name: 'Bot Mention',
         value: 'botMention',
         description: 'The bot has to be mentioned somewhere in the message in order to trigger',
-      }, 
+      },
       {
         name: 'Contains',
         value: 'contain',
@@ -172,7 +186,7 @@ export const options: INodeProperties[] = [
     placeholder: 'e.g. !hello',
     displayOptions: {
       show: {
-        type: ['message'],
+        type: ['message', 'direct-message'],
         pattern: ['equal', 'start', 'contain', 'end', 'regex'],
       },
     },
@@ -186,7 +200,7 @@ export const options: INodeProperties[] = [
     type: 'boolean',
     displayOptions: {
       show: {
-        type: ['message'],
+        type: ['message', 'direct-message'],
       },
     },
 
@@ -199,7 +213,7 @@ export const options: INodeProperties[] = [
     type: 'boolean',
     displayOptions: {
       show: {
-        type: ['message'],
+        type: ['message', 'direct-message'],
       },
     },
 
@@ -240,6 +254,6 @@ export const options: INodeProperties[] = [
         default: false,
         description: "Whether this node needs to have at least one attachment to be triggered",
       },
-    ],									
+    ],
   }
 ];
