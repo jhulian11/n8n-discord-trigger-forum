@@ -35,7 +35,7 @@ export default function () {
         allowedMentions: {
             parse: ['roles', 'users', 'everyone'],
         },
-        partials: [Partials.Message, Partials.Channel, Partials.Reaction],
+        partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
     });
 
     ipc.config.id = 'bot';
