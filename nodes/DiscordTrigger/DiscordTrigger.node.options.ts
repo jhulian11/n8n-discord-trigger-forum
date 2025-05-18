@@ -65,9 +65,6 @@ export const options: INodeProperties[] = [
       show: {
         type: ['message', 'user-join', 'user-leave', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update'],
       },
-      hide: {
-        type: ['direct-message'],
-      },
     },
     typeOptions: {
       loadOptionsMethod: 'getGuilds',
@@ -88,9 +85,6 @@ export const options: INodeProperties[] = [
       show: {
         type: ['message', 'message-reaction-add', 'message-reaction-remove'],
       },
-      hide: {
-        type: ['direct-message'],
-      },
     },
     default: [],
     description: 'Lets you select the text channels you want to listen to for triggering the workflow. If none selected, all channels will be listen to. Your credentials must be set and the bot running, you also need at least one text channel available. If you do not meet these requirements, make the changes then close and reopen the modal (the channels list is loaded when the modal opens). Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
@@ -104,9 +98,6 @@ export const options: INodeProperties[] = [
     displayOptions: {
       show: {
         type: ['message', 'message-reaction-add', 'message-reaction-remove'],
-      },
-      hide: {
-        type: ['direct-message'],
       },
     },
     typeOptions: {
