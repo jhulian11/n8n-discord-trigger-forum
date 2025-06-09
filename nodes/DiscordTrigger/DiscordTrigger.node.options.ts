@@ -8,14 +8,14 @@ export const options: INodeProperties[] = [
     type: 'options',
     options: [
       {
-        name: 'Message',
-        value: 'message',
-        description: 'When a message is sent in the selected channels',
-      },
-      {
         name: 'Direct Message',
         value: 'direct-message',
         description: 'When a direct message is sent to the bot',
+      },
+      {
+        name: 'Message',
+        value: 'message',
+        description: 'When a message is sent in the selected channels',
       },
       {
 				name: 'Reaction Add',

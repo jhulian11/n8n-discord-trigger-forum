@@ -71,6 +71,7 @@ For more help on setting up n8n workflows, check the [Try it out documentation](
 
 ## Version history
 
+- **v0.6.0**: Add direct message support (Thank you [Fank](https://github.com/Fank)) 
 - **v0.5.1**: Add additional timeout field for confirmation message
 - **v0.5.0**: Add a reaction trigger on messages, add attachments to message
 - **v0.4.0**: Introduce additional trigger options, such as User joins guild, User leaves guild, Role created, Role deleted or Role updated. 

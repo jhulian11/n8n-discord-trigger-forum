@@ -5,7 +5,6 @@ import {
     type ITriggerResponse,
     type INodePropertyOptions,
     NodeOperationError,
-    NodeConnectionType,
 } from 'n8n-workflow';
 import { options } from './DiscordTrigger.node.options';
 import bot from '../bot';
@@ -35,7 +34,7 @@ export class DiscordTrigger implements INodeType {
         },
         icon: 'file:discord-logo.svg',
         inputs: [],
-        outputs: [NodeConnectionType.Main],
+        outputs: ['main'],
         credentials: [
             {
                 name: 'discordBotTriggerApi',

@@ -7,7 +7,6 @@ import {
     type INodeParameters,
     INodeOutputConfiguration,
     NodeOperationError,
-    NodeConnectionType,
 } from 'n8n-workflow';
 import { options } from './DiscordInteraction.node.options';
 import ipc from 'node-ipc';
@@ -96,7 +95,7 @@ export class DiscordInteraction implements INodeType {
             name: 'Discord Interaction',
         },
         icon: 'file:discord-logo.svg',
-        inputs: [NodeConnectionType.Main],
+        inputs: ['main'],
         outputs: `={{(${configuredOutputs})($parameter)}}`,
         credentials: [
             {
