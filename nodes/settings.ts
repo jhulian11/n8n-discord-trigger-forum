@@ -1,3 +1,5 @@
+import { Client } from 'discord.js';
+
 const settings: {
     ready: boolean;
     login: boolean;
@@ -7,7 +9,12 @@ const settings: {
     baseUrl: string;
     parameters: any;
 
-    triggerNodes: any;
+    readyClients: { [token: string]: boolean };
+    loginQueue: { [token: string]: boolean };
+    clientMap: { [token: string]: Client };
+    credentials: { [token: string]: { token: string; clientId: string } };
+    
+    triggerNodes: { [token: string]: { [nodeId: string]: any } };
 } = {
     ready: false,
     login: false,
@@ -18,6 +25,11 @@ const settings: {
     parameters: {},
 
     triggerNodes: {},
+
+    readyClients: {},
+    loginQueue: {},
+    clientMap: {},
+    credentials: {},
 }
 
 export default settings;

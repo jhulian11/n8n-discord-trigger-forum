@@ -5,7 +5,7 @@
 [n8n](https://www.n8n.io) nodes to trigger workflows from Discord messages.
 
 
-This node utilizes a Discord bot to transmit or receive data from child processes when a node is executed. It is standalone but heavily inspired by `n8n-nodes-discord`.
+This node utilizes a Discord bot to transmit or receive data from child processes when a node is executed.
 
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
@@ -71,6 +71,7 @@ For more help on setting up n8n workflows, check the [Try it out documentation](
 
 ## Version history
 
+- **v0.7.0**: Add multiclient support. Multiple credentials across multiple workflows are now possible.
 - **v0.6.0**: Add direct message support (Thank you [Fank](https://github.com/Fank)) 
 - **v0.5.1**: Add additional timeout field for confirmation message
 - **v0.5.0**: Add a reaction trigger on messages, add attachments to message

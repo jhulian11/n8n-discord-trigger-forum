@@ -55,7 +55,7 @@ export const getChannels = async (that: any, guildIds: string[]): Promise<INodeP
 
             ipc.config.retry = 1500;
             ipc.connectTo('bot', () => {
-                ipc.of.bot.emit('list:channels', guildIds);
+                ipc.of.bot.emit('list:channels', {guildIds: guildIds, token: credentials.token});
 
                 ipc.of.bot.on('list:channels', (data: { name: string; value: string }[]) => {
                     clearTimeout(timeout);
@@ -105,7 +105,7 @@ export const getGuilds = async (that: any): Promise<INodePropertyOptions[]> => {
 
             ipc.config.retry = 1500;
             ipc.connectTo('bot', () => {
-                ipc.of.bot.emit('list:guilds');
+                ipc.of.bot.emit('list:guilds', { token: credentials.token });
 
                 ipc.of.bot.on('list:guilds', (data: { name: string; value: string }[]) => {
                     clearTimeout(timeout);
@@ -159,7 +159,7 @@ export const getRoles = async (that: any, selectedGuildIds: string[]): Promise<I
 
             ipc.config.retry = 1500;
             ipc.connectTo('bot', () => {
-                ipc.of.bot.emit('list:roles', selectedGuildIds);
+                ipc.of.bot.emit('list:roles', { guildIds: selectedGuildIds, token: credentials.token });
 
                 ipc.of.bot.on('list:roles', (data: any) => {
                     clearTimeout(timeout);

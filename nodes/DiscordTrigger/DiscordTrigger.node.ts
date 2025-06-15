@@ -93,17 +93,17 @@ export class DiscordTrigger implements INodeType {
                 parameters[key] = this.getNodeParameter(key, '') as any;
             });
 
-            console.log("registering ", this.getNode().id, "... ", parameters);
-
             ipc.of.bot.emit('triggerNodeRegistered', {
                 parameters,
                 active: this.getWorkflow().active,
                 credentials,
+                token: credentials.token,
                 nodeId: this.getNode().id, // Unique to each node
             });
 
             ipc.of.bot.on('messageCreate', ({ message, author, guild, nodeId, messageReference, attachments, referenceAuthor }: any) => {
                 if( this.getNode().id === nodeId) {
+                    console.log("received messageCreate event", message.id);
 
                     const messageCreateOptions : any = {
                         id: message.id,

@@ -20,6 +20,7 @@ import {
 
 
 export interface IDiscordInteractionMessageParameters {
+    token: string;
     executionId: string;
     triggerPlaceholder: boolean;
     triggerChannel: boolean;
@@ -183,7 +184,7 @@ export class DiscordInteraction implements INodeType {
                     });
 
                     // send event to bot
-                    ipc.of.bot.emit(type, nodeParameters);
+                    ipc.of.bot.emit(type, {nodeParameters: nodeParameters, token: credentials.token});
                 });
             });
             console.log(response);
@@ -219,7 +220,7 @@ export class DiscordInteraction implements INodeType {
                             });
 
                             // send event to bot
-                            ipc.of.bot.emit(type, nodeParameters);
+                            ipc.of.bot.emit(type, {token: credentials.token, nodeParameters:nodeParameters});
                         });
                     }).catch((e) => {
                         console.log(e);

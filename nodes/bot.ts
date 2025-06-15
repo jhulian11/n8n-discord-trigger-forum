@@ -19,386 +19,398 @@ import settings from './settings';
 import { IDiscordInteractionMessageParameters, IDiscordNodeActionParameters } from './DiscordInteraction/DiscordInteraction.node';
 
 export default function () {
-    const client = new Client({
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.GuildPresences,
-            GatewayIntentBits.GuildModeration,
-            GatewayIntentBits.GuildMessageReactions,
-            GatewayIntentBits.GuildMessageTyping,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.DirectMessageReactions,
-            GatewayIntentBits.MessageContent,
-        ],
-        allowedMentions: {
-            parse: ['roles', 'users', 'everyone'],
-        },
-        partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
-    });
-
     ipc.config.id = 'bot';
     ipc.config.retry = 1500;
     ipc.config.silent = true;
 
-    client.once('ready', () => {
-        console.log(`Logged in as ${client.user?.tag}`);
-        client.on('messageCreate', onMessageCreate);
-    });
+    function spawnClient(token: string, clientId: string) : Client {
 
-    client.on('guildMemberAdd', (guildMember) => {
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('user-join' !== parameters.type)
-                    continue;
+        const client = new Client({
+            intents: [
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.GuildMembers,
+                GatewayIntentBits.GuildPresences,
+                GatewayIntentBits.GuildModeration,
+                GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.GuildMessageTyping,
+                GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.DirectMessageReactions,
+                GatewayIntentBits.MessageContent,
+            ],
+            allowedMentions: {
+                parse: ['roles', 'users', 'everyone'],
+            },
+            partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
+        });
 
-                if (parameters.guildIds.length && !parameters.guildIds.includes(guildMember.guild.id))
-                    continue;
+        client.on('guildMemberAdd', (guildMember) => {
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('user-join' !== parameters.type)
+                        continue;
 
-                ipc.server.emit(parameters.socket, 'guildMemberAdd', {
-                    guildMember: guildMember,
-                    guild: guildMember.guild,
-                    user: guildMember.user,
-                    nodeId: nodeId
-                });
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(guildMember.guild.id))
+                        continue;
 
-            } catch (e) {
-                console.log(e);
+                    ipc.server.emit(parameters.socket, 'guildMemberAdd', {
+                        guildMember: guildMember,
+                        guild: guildMember.guild,
+                        user: guildMember.user,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
             }
-        }
-    });
+        });
 
-    client.on('guildMemberRemove', (guildMember) => {
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('user-leave' !== parameters.type)
-                    continue;
+        client.on('guildMemberRemove', (guildMember) => {
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('user-leave' !== parameters.type)
+                        continue;
 
-                if (parameters.guildIds.length && !parameters.guildIds.includes(guildMember.guild.id))
-                    continue;
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(guildMember.guild.id))
+                        continue;
 
-                ipc.server.emit(parameters.socket, 'guildMemberRemove', {
-                    guildMember: guildMember,
-                    guild: guildMember.guild,
-                    user: guildMember.user,
-                    nodeId: nodeId
-                });
+                    ipc.server.emit(parameters.socket, 'guildMemberRemove', {
+                        guildMember: guildMember,
+                        guild: guildMember.guild,
+                        user: guildMember.user,
+                        nodeId: nodeId
+                    });
 
-            } catch (e) {
-                console.log(e);
+                } catch (e) {
+                    console.log(e);
+                }
             }
-        }
-    });
+        });
 
-    client.on('messageReactionAdd', async (messageReaction, user) => {
-        let message : any = null;
+        client.on('messageReactionAdd', async (messageReaction, user) => {
+            let message : any = null;
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('message-reaction-add' !== parameters.type)
+                        continue;
 
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('message-reaction-add' !== parameters.type)
-                    continue;
+                    if (!message) {
+                        // If the message this reaction belongs to was removed, the fetching might result in an API error which should be handled
+                        try {
+                            await messageReaction.fetch();
+                            message = messageReaction.message;
+                        } catch (error) {
+                            console.error('Something went wrong when fetching the message:', error);
+                            continue;
+                        }
+                    }
 
-                if (!message) {
-                    // If the message this reaction belongs to was removed, the fetching might result in an API error which should be handled
-                    try {
-                        await messageReaction.fetch();
-                        message = messageReaction.message;
-                    } catch (error) {
-                        console.error('Something went wrong when fetching the message:', error);
+                    // ignore messageReactions of other bots
+                    const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
+                    if (!triggerOnExternalBot) {
+                        if (user.bot || user.system) continue;
+                    }
+                    else if (user.id === message.client.user.id) continue;
+
+                    if (parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
+                        continue;
+
+                    if (parameters.messageIds.length && !parameters.messageIds.includes(message.id))
+                        continue;
+
+
+                    // check if executed by the proper channel
+                    if (parameters.channelIds.length) {
+                        const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
+                        if (!isInChannel) continue;
+                    }
+
+                    // check if executed by the proper role
+                    const userRoles = message.member?.roles.cache.map((role: any) => role.id);
+                    if (parameters.roleIds.length) {
+                        const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
+                        if (!hasRole) continue;
+                    }
+
+                    ipc.server.emit(parameters.socket, 'messageReactionAdd', {
+                        messageReaction: messageReaction,
+                        message: message,
+                        user: user,
+                        guild: message.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        client.on('messageReactionRemove', async (messageReaction, user) => {
+            let message : any = null;
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('message-reaction-remove' !== parameters.type)
+                        continue;
+
+                    if (!message) {
+                        try {
+                            await messageReaction.fetch();
+                            message = messageReaction.message;
+                        } catch (error) {
+                            console.error('Something went wrong when fetching the message:', error);
+                            continue;
+                        }
+                    }
+
+                    // ignore messageReactions of other bots
+                    const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
+                    if (!triggerOnExternalBot) {
+                        if (user.bot || user.system) continue;
+                    }
+                    else if (user.id === message.client.user.id) continue;
+
+                    if (parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
+                        continue;
+
+                    if (parameters.messageIds.length && !parameters.messageIds.includes(message.id))
+                        continue;
+
+                    // check if executed by the proper channel
+                    if (parameters.channelIds.length) {
+                        const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
+                        if (!isInChannel) continue;
+                    }
+
+                    // check if executed by the proper role
+                    const userRoles = message.member?.roles.cache.map((role: any) => role.id);
+                    if (parameters.roleIds.length) {
+                        const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
+                        if (!hasRole) continue;
+                    }
+                    ipc.server.emit(parameters.socket, 'messageReactionRemove', {
+                        messageReaction: messageReaction,
+                        message: message,
+                        user: user,
+                        guild: message.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        client.on('roleCreate', (role) => {
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('role-create' !== parameters.type)
+                        continue;
+
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(role.guild.id))
+                        continue;
+
+                    ipc.server.emit(parameters.socket, 'roleCreate', {
+                        role: role,
+                        guild: role.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        client.on('roleDelete', (role) => {
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('role-delete' !== parameters.type)
+                        continue;
+
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(role.guild.id))
+                        continue;
+
+                    ipc.server.emit(parameters.socket, 'roleDelete', {
+                        role: role,
+                        guild: role.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        client.on('roleUpdate', (oldRole, newRole) => {
+            if (
+                oldRole.name === newRole.name &&
+                oldRole.color === newRole.color &&
+                oldRole.hoist === newRole.hoist &&
+                oldRole.permissions.bitfield === newRole.permissions.bitfield &&
+                oldRole.mentionable === newRole.mentionable &&
+                oldRole.icon === newRole.icon &&
+                oldRole.unicodeEmoji === newRole.unicodeEmoji
+            ) {
+                return; // Skip processing if no meaningful changes were made
+            }
+
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('role-update' !== parameters.type)
+                        continue;
+
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(oldRole.guild.id))
+                        continue;
+
+                    ipc.server.emit(parameters.socket, 'roleUpdate', {
+                        oldRole,
+                        newRole,
+                        guild: oldRole.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        // whenever a message is created this listener is called
+        const onMessageCreate = async (message: Message) => {
+
+            console.log("message created", message.id, message.content);
+            
+            // resolve the message reference if it exists
+            let messageReference: Message | null = null;
+            let messageRerenceFetched = !(message.reference);
+
+            // iterate through all nodes and see if we need to trigger some
+            for (const [nodeId, parameters] of Object.entries(settings.triggerNodes[token]) as [string, any]) {
+                try {
+                    // Check if this is a direct message or a regular message type
+                    const isDirectMessage = message.channel.type === ChannelType.DM;
+
+                    // Skip if this node doesn't match the message type
+                    if (parameters.type === 'direct-message' && !isDirectMessage) continue;
+                    if (parameters.type === 'message' && isDirectMessage) continue;
+                    if (parameters.type !== 'message' && parameters.type !== 'direct-message') continue;
+
+                    const pattern = parameters.pattern;
+
+                    const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
+                    const onlyWithAttachments = parameters.additionalFields?.attachmentsRequired || false;
+
+                    // ignore messages of other bots
+                    if (!triggerOnExternalBot) {
+                        if (message.author.bot || message.author.system) continue;
+                    }
+                    else if (message.author.id === message.client.user.id) continue;
+
+                    // For guild messages, check guild ID filter (skip for direct messages)
+                    if (!isDirectMessage && parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
+                        continue;
+
+                    // check if executed by the proper role (skip for direct messages)
+                    const userRoles = !isDirectMessage ? message.member?.roles.cache.map((role: any) => role.id) : [];
+                    if (!isDirectMessage && parameters.roleIds.length) {
+                        const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
+                        if (!hasRole) continue;
+                    }
+
+                    // check if executed by the proper channel (skip for direct messages)
+                    if (!isDirectMessage && parameters.channelIds.length) {
+                        const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
+                        if (!isInChannel) continue;
+                    }
+
+                    // check if the message has to have a message that was responded to
+                    if (parameters.messageReferenceRequired && !message.reference) {
                         continue;
                     }
-                }
 
-                // ignore messageReactions of other bots
-                const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
-                if (!triggerOnExternalBot) {
-                    if (user.bot || user.system) continue;
-                }
-                else if (user.id === message.client.user.id) continue;
-
-                if (parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
-                    continue;
-
-                if (parameters.messageIds.length && !parameters.messageIds.includes(message.id))
-                    continue;
+                    // fetch the message reference only once and only if needed, even if multiple triggers are installed
+                    if (!messageRerenceFetched) {
+                        messageReference = await message.fetchReference();
+                        messageRerenceFetched = true;
+                    }
 
 
-                // check if executed by the proper channel
-                if (parameters.channelIds.length) {
-                    const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
-                    if (!isInChannel) continue;
-                }
+                    // escape the special chars to properly trigger the message
+                    const escapedTriggerValue = String(parameters.value)
+                        .replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
+                        .replace(/-/g, '\\x2d');
 
-                // check if executed by the proper role
-                const userRoles = message.member?.roles.cache.map((role: any) => role.id);
-                if (parameters.roleIds.length) {
-                    const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
-                    if (!hasRole) continue;
-                }
+                    const clientId = client.user?.id;
+                    const botMention = message.mentions.users.some((user: any) => user.id === clientId);
 
-                ipc.server.emit(parameters.socket, 'messageReactionAdd', {
-                    messageReaction: messageReaction,
-                    message: message,
-                    user: user,
-                    guild: message.guild,
-                    nodeId: nodeId
-                });
+                    let regStr = `^${escapedTriggerValue}$`;
 
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    });
-
-    client.on('messageReactionRemove', async (messageReaction, user) => {
-        let message : any = null;
-
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-
-                if ('message-reaction-remove' !== parameters.type)
-                    continue;
-
-
-                if (!message) {
-                    try {
-                        await messageReaction.fetch();
-                        message = messageReaction.message;
-                    } catch (error) {
-                        console.error('Something went wrong when fetching the message:', error);
+                    // return if we expect a bot mention, but bot is not mentioned
+                    if (pattern === "botMention" && !botMention)
                         continue;
-                    }
-                }
 
-                // ignore messageReactions of other bots
-                const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
-                if (!triggerOnExternalBot) {
-                    if (user.bot || user.system) continue;
-                }
-                else if (user.id === message.client.user.id) continue;
+                    else if (pattern === "start" && message.content)
+                        regStr = `^${escapedTriggerValue}`;
+                    else if (pattern === 'end')
+                        regStr = `${escapedTriggerValue}$`;
+                    else if (pattern === 'contain')
+                        regStr = `${escapedTriggerValue}`;
+                    else if (pattern === 'regex')
+                        regStr = `${parameters.value}`;
+                    else if (pattern === 'every')
+                        regStr = `(.*)`;
 
-                if (parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
-                    continue;
+                    const reg = new RegExp(regStr, parameters.caseSensitive ? '' : 'i');
 
-                if (parameters.messageIds.length && !parameters.messageIds.includes(message.id))
-                    continue;
+                    if ((pattern === "botMention" && botMention) || reg.test(message.content)) {
+                        // Emit the message data to n8n
 
-                // check if executed by the proper channel
-                if (parameters.channelIds.length) {
-                    const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
-                    if (!isInChannel) continue;
-                }
+                        // message create Options
+                        const messageCreateOptions : any = {
+                            message,
+                            messageReference,
+                            guild: message?.guild,
+                            referenceAuthor: messageReference?.author,
+                            author: message.author,
+                            nodeId: nodeId,
+                        }
 
-                // check if executed by the proper role
-                const userRoles = message.member?.roles.cache.map((role: any) => role.id);
-                if (parameters.roleIds.length) {
-                    const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
-                    if (!hasRole) continue;
-                }
+                        // check attachments
+                        if (onlyWithAttachments && !message.attachments) continue;
+                        messageCreateOptions.attachments = message.attachments;
 
-                ipc.server.emit(parameters.socket, 'messageReactionRemove', {
-                    messageReaction: messageReaction,
-                    message: message,
-                    user: user,
-                    guild: message.guild,
-                    nodeId: nodeId
-                });
-
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    });
-
-    client.on('roleCreate', (role) => {
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('role-create' !== parameters.type)
-                    continue;
-
-                if (parameters.guildIds.length && !parameters.guildIds.includes(role.guild.id))
-                    continue;
-
-                ipc.server.emit(parameters.socket, 'roleCreate', {
-                    role: role,
-                    guild: role.guild,
-                    nodeId: nodeId
-                });
-
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    });
-
-    client.on('roleDelete', (role) => {
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('role-delete' !== parameters.type)
-                    continue;
-
-                if (parameters.guildIds.length && !parameters.guildIds.includes(role.guild.id))
-                    continue;
-
-                ipc.server.emit(parameters.socket, 'roleDelete', {
-                    role: role,
-                    guild: role.guild,
-                    nodeId: nodeId
-                });
-
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    });
-
-    client.on('roleUpdate', (oldRole, newRole) => {
-        if (
-            oldRole.name === newRole.name &&
-            oldRole.color === newRole.color &&
-            oldRole.hoist === newRole.hoist &&
-            oldRole.permissions.bitfield === newRole.permissions.bitfield &&
-            oldRole.mentionable === newRole.mentionable &&
-            oldRole.icon === newRole.icon &&
-            oldRole.unicodeEmoji === newRole.unicodeEmoji
-        ) {
-            return; // Skip processing if no meaningful changes were made
-        }
-
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                if ('role-update' !== parameters.type)
-                    continue;
-
-                if (parameters.guildIds.length && !parameters.guildIds.includes(oldRole.guild.id))
-                    continue;
-
-                ipc.server.emit(parameters.socket, 'roleUpdate', {
-                    oldRole,
-                    newRole,
-                    guild: oldRole.guild,
-                    nodeId: nodeId
-                });
-
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    });
-
-    // whenever a message is created this listener is called
-    const onMessageCreate = async (message: Message) => {
-
-        // resolve the message reference if it exists
-        let messageReference: Message | null = null;
-        let messageRerenceFetched = !(message.reference);
-
-        // iterate through all nodes and see if we need to trigger some
-        for (const [nodeId, parameters] of Object.entries(settings.triggerNodes) as [string, any]) {
-            try {
-                // Check if this is a direct message or a regular message type
-                const isDirectMessage = message.channel.type === ChannelType.DM;
-
-                // Skip if this node doesn't match the message type
-                if (parameters.type === 'direct-message' && !isDirectMessage) continue;
-                if (parameters.type === 'message' && isDirectMessage) continue;
-                if (parameters.type !== 'message' && parameters.type !== 'direct-message') continue;
-
-                const pattern = parameters.pattern;
-
-                const triggerOnExternalBot = parameters.additionalFields?.externalBotTrigger || false;
-                const onlyWithAttachments = parameters.additionalFields?.attachmentsRequired || false;
-
-                // ignore messages of other bots
-                if (!triggerOnExternalBot) {
-                    if (message.author.bot || message.author.system) continue;
-                }
-                else if (message.author.id === message.client.user.id) continue;
-
-                // For guild messages, check guild ID filter (skip for direct messages)
-                if (!isDirectMessage && parameters.guildIds.length && message.guild && !parameters.guildIds.includes(message.guild.id))
-                    continue;
-
-                // check if executed by the proper role (skip for direct messages)
-                const userRoles = !isDirectMessage ? message.member?.roles.cache.map((role: any) => role.id) : [];
-                if (!isDirectMessage && parameters.roleIds.length) {
-                    const hasRole = parameters.roleIds.some((role: any) => userRoles?.includes(role));
-                    if (!hasRole) continue;
-                }
-
-                // check if executed by the proper channel (skip for direct messages)
-                if (!isDirectMessage && parameters.channelIds.length) {
-                    const isInChannel = parameters.channelIds.some((channelId: any) => message.channel.id?.includes(channelId));
-                    if (!isInChannel) continue;
-                }
-
-                // check if the message has to have a message that was responded to
-                if (parameters.messageReferenceRequired && !message.reference) {
-                    continue;
-                }
-
-                // fetch the message reference only once and only if needed, even if multiple triggers are installed
-                if (!messageRerenceFetched) {
-                    messageReference = await message.fetchReference();
-                    messageRerenceFetched = true;
-                }
-
-
-                // escape the special chars to properly trigger the message
-                const escapedTriggerValue = String(parameters.value)
-                    .replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')
-                    .replace(/-/g, '\\x2d');
-
-                const clientId = client.user?.id;
-                const botMention = message.mentions.users.some((user: any) => user.id === clientId);
-
-                let regStr = `^${escapedTriggerValue}$`;
-
-                // return if we expect a bot mention, but bot is not mentioned
-                if (pattern === "botMention" && !botMention)
-                    continue;
-
-                else if (pattern === "start" && message.content)
-                    regStr = `^${escapedTriggerValue}`;
-                else if (pattern === 'end')
-                    regStr = `${escapedTriggerValue}$`;
-                else if (pattern === 'contain')
-                    regStr = `${escapedTriggerValue}`;
-                else if (pattern === 'regex')
-                    regStr = `${parameters.value}`;
-                else if (pattern === 'every')
-                    regStr = `(.*)`;
-
-                const reg = new RegExp(regStr, parameters.caseSensitive ? '' : 'i');
-
-                if ((pattern === "botMention" && botMention) || reg.test(message.content)) {
-                    // Emit the message data to n8n
-
-                    // message create Options
-                    const messageCreateOptions : any = {
-                        message,
-                        messageReference,
-                        guild: message?.guild,
-                        referenceAuthor: messageReference?.author,
-                        author: message.author,
-                        nodeId: nodeId,
+                        console.log("about to emit messageCreate", message.id);
+                        
+                        ipc.server.emit(parameters.socket, 'messageCreate', messageCreateOptions);
                     }
 
-                    // check attachments
-                    if (onlyWithAttachments && !message.attachments) continue;
-
-                    console.log("attachments", message.attachments);
-                    messageCreateOptions.attachments = message.attachments;
-
-                    ipc.server.emit(parameters.socket, 'messageCreate', messageCreateOptions);
+                } catch (e) {
+                    console.log(e);
                 }
-
-            } catch (e) {
-                console.log(e);
             }
-        }
-    };
+        };
+
+        client.once('ready', () => {
+            client.on('messageCreate', onMessageCreate);
+            if (client.user)
+                console.log(`Discord bot (${client.user.id}) is ready and listening for messages`);
+        });
+
+        client.login(token).catch(console.error);
+
+        return client;
+    }
 
     // nodes are executed in a child process, the Discord bot is executed in the main process
     // so it's not stopped when a node execution end
@@ -408,40 +420,42 @@ export default function () {
         console.log(`ipc bot server started`);
 
         ipc.server.on('triggerNodeRegistered', (data: any, socket: any) => {
-
             // set the specific node parameters for a later iteration when we get messages
-            settings.triggerNodes[data.nodeId] = {
+            if (!settings.triggerNodes[data.token]) settings.triggerNodes[data.token] = {};
+            settings.triggerNodes[data.token][data.nodeId] = {
                 ...data.parameters, // deconscruct and add socket for later
                 socket: socket,
             };
         });
 
         ipc.server.on('triggerNodeRemoved', (data: { nodeId: string }, socket: any) => {
+            // remove the specific node parameters because the node was removed
             console.log(`Removing trigger node: ${data.nodeId}`);
-            if (settings.triggerNodes[data.nodeId]) {
-                delete settings.triggerNodes[data.nodeId];
+            for (const token in settings.triggerNodes) {
+                delete settings.triggerNodes[token][data.nodeId];
             }
         });
 
 
-        ipc.server.on('list:roles', (guildIds: string[], socket: any) => {
+        ipc.server.on('list:roles', (data: {guildIds: string[], token: string}, socket: any) => {
             try {
-                if (settings.ready) {
-                    const guilds = client.guilds.cache.filter(guild => guildIds.includes(`${guild.id}`));
-                    const rolesList = [] as { name: string; value: string }[];
+                 const client = settings.clientMap[data.token];
+                if (!client || !settings.readyClients[data.token]) return;
+                
+                const guilds = client.guilds.cache.filter(guild => data.guildIds.includes(`${guild.id}`));
+                const rolesList = [] as { name: string; value: string }[];
 
-                    for (const guild of guilds.values()) {
-                        const roles = guild.roles.cache ?? ([]);
-                        for (const role of roles.values()) {
-                            rolesList.push({
-                                name: role.name,
-                                value: role.id,
-                            })
-                        }
+                for (const guild of guilds.values()) {
+                    const roles = guild.roles.cache ?? ([]);
+                    for (const role of roles.values()) {
+                        rolesList.push({
+                            name: role.name,
+                            value: role.id,
+                        })
                     }
-
-                    ipc.server.emit(socket, 'list:roles', rolesList);
                 }
+
+                ipc.server.emit(socket, 'list:roles', rolesList);
             } catch (e) {
                 console.log(`${e}`);
             }
@@ -449,20 +463,20 @@ export default function () {
 
 
 
-        ipc.server.on('list:guilds', (data: undefined, socket: any) => {
+        ipc.server.on('list:guilds', (data: { token: string }, socket: any) => {
             try {
-                if (settings.ready) {
+                const client = settings.clientMap[data.token];
+                if (!client || !settings.readyClients[data.token]) return;
 
-                    const guilds = client.guilds.cache ?? ([] as any);
-                    const guildsList = guilds.map((guild: Guild) => {
-                        return {
-                            name: guild.name,
-                            value: guild.id,
-                        };
-                    });
+                const guilds = client.guilds.cache ?? ([] as any);
+                const guildsList = guilds.map((guild: Guild) => {
+                    return {
+                        name: guild.name,
+                        value: guild.id,
+                    };
+                });
 
-                    ipc.server.emit(socket, 'list:guilds', guildsList);
-                }
+                ipc.server.emit(socket, 'list:guilds', guildsList);
             } catch (e) {
                 console.log(`${e}`);
             }
@@ -470,26 +484,27 @@ export default function () {
 
 
 
-        ipc.server.on('list:channels', (guildIds: string[], socket: any) => {
+        ipc.server.on('list:channels', (data: {guildIds: string[], token: string}, socket: any) => {
             try {
-                if (settings.ready) {
-                    const guilds = client.guilds.cache.filter(guild => guildIds.includes(`${guild.id}`));
-                    const channelsList = [] as { name: string; value: string }[];
+                const client = settings.clientMap[data.token];
+                if (!client || !settings.readyClients[data.token]) return;
 
-                    for (const guild of guilds.values()) {
-                        const channels = guild.channels.cache.filter((channel: any) => channel.type === ChannelType.GuildText) ?? ([] as any) as any;
-                        for (const channel of channels.values()) {
-                            channelsList.push({
-                                name: channel.name,
-                                value: channel.id,
-                            })
-                        }
+                const guilds = client.guilds.cache.filter(guild => data.guildIds.includes(`${guild.id}`));
+                const channelsList = [] as { name: string; value: string }[];
+
+                for (const guild of guilds.values()) {
+                    const channels = guild.channels.cache.filter((channel: any) => channel.type === ChannelType.GuildText) ?? ([] as any) as any;
+                    for (const channel of channels.values()) {
+                        channelsList.push({
+                            name: channel.name,
+                            value: channel.id,
+                        })
                     }
-
-                    console.log(channelsList);
-
-                    ipc.server.emit(socket, 'list:channels', channelsList);
                 }
+
+                console.log(channelsList);
+
+                ipc.server.emit(socket, 'list:channels', channelsList);
             } catch (e) {
                 console.log(`${e}`);
             }
@@ -499,63 +514,78 @@ export default function () {
 
 
         ipc.server.on('credentials', (data: ICredentials, socket: any) => {
-            try {
-                if (
-                    (!settings.login && !settings.ready) ||
-                    (settings.ready && (settings.clientId !== data.clientId || settings.token !== data.token))
-                ) {
-                    if (data.token && data.clientId) {
-                        settings.login = true;
-                        client.destroy();
-                        client
-                            .login(data.token)
-                            .then(() => {
-                                // set token for rest api aswell
-                                client.rest.setToken(data.token);
+            const { token, clientId } = data;
 
-                                settings.ready = true;
-                                settings.login = false;
-                                settings.clientId = data.clientId;
-                                settings.token = data.token;
-                                console.log("Client token2: ", client.isReady());
-                                ipc.server.emit(socket, 'credentials', 'ready');
-                            })
-                            .catch((e) => {
-                                settings.login = false;
-                                ipc.server.emit(socket, 'credentials', 'error');
-                            });
-                    } else {
-                        ipc.server.emit(socket, 'credentials', 'missing');
-                        console.log(`credentials missing`);
-                    }
-                } else if (settings.login) {
-                    ipc.server.emit(socket, 'credentials', 'login');
-                    console.log(`credentials login`);
-                } else {
-                    ipc.server.emit(socket, 'credentials', 'already');
-                }
-            } catch (e) {
-                console.log(`${e}`);
+            if (!token || !clientId) {
+                ipc.server.emit(socket, 'credentials', 'missing');
+                return;
+            }
+
+            if (settings.readyClients[token]) {
+               ipc.server.emit(socket, 'credentials', 'already');
+                return;
+            }
+
+            if (settings.loginQueue[token]) {
+                ipc.server.emit(socket, 'credentials', 'login');
+                return;
+            }
+
+            settings.loginQueue[token] = true;
+            try {
+                const client = spawnClient(token, clientId);
+                settings.clientMap[token] = client;
+                settings.triggerNodes[token] = {};
+                settings.credentials[token] = { token, clientId };
+
+                client.once('ready', () => {
+                    settings.readyClients[token] = true;
+                    settings.loginQueue[token] = false;
+
+                    // Optional: set REST token if needed
+                    client.rest.setToken(token);
+
+                    console.log(`Logged in as ${client.user?.tag} (${clientId})`);
+                    ipc.server.emit(socket, 'credentials', 'ready');
+                });
+
+                 client.on('error', (err) => {
+                    console.error(`Client error for ${token}`, err);
+                    settings.loginQueue[token] = false;
+                    ipc.server.emit(socket, 'credentials', 'error');
+                });
+
+            } catch (err) {
+                settings.loginQueue[token] = false;
+                console.error(`Failed to login client for ${token}`, err);
+                ipc.server.emit(socket, 'credentials', 'error');
             }
         });
 
-        ipc.server.on('send:message', async (nodeParameters: IDiscordInteractionMessageParameters, socket: any) => {
+        ipc.server.on('send:message', async (data: {token: string,  nodeParameters: IDiscordInteractionMessageParameters }, socket: any) => {
             try {
-                if (settings.ready) {
 
-                    // fetch channel
-                    const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
-                    if (!channel || !channel.isTextBased()) return;
+                console.log(`send message for ${data.token}`);
 
-                    const preparedMessage = prepareMessage(nodeParameters);
+                const client = settings.clientMap[data.token];
+                
+                const nodeParameters = data.nodeParameters;
+                if (!client || !settings.readyClients[data.token]) return;
+                console.log("client ready", client.user?.tag );
+                
 
-                    // finally send the message and report back to the listener
-                    const message = await channel.send(preparedMessage);
-                    ipc.server.emit(socket, 'callback:send:message', {
-                        channelId: channel.id,
-                        messageId: message.id
-                    });
-                }
+                // fetch channel
+                const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
+                if (!channel || !channel.isTextBased()) return;
+
+                const preparedMessage = prepareMessage(nodeParameters);
+
+                // finally send the message and report back to the listener
+                const message = await channel.send(preparedMessage);
+                ipc.server.emit(socket, 'callback:send:message', {
+                    channelId: channel.id,
+                    messageId: message.id
+                });
             } catch (e) {
                 console.log(`${e}`);
                 ipc.server.emit(socket, 'callback:send:message', false);
@@ -563,51 +593,53 @@ export default function () {
         });
 
 
-        ipc.server.on('send:action', async (nodeParameters: IDiscordNodeActionParameters, socket: any) => {
+        ipc.server.on('send:action', async (data: {token: string, nodeParameters: IDiscordNodeActionParameters}, socket: any) => {
             try {
-                if (settings.ready) {
-                    const performAction = async () => {
-                        // remove messages
-                        if (nodeParameters.actionType === 'removeMessages') {
-                            const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
-                            if (!channel || !channel.isTextBased()) {
-                                ipc.server.emit(socket, `callback:send:action`, false);;
-                                return;
-                            }
+                const client = settings.clientMap[data.token];
+                const nodeParameters = data.nodeParameters;
+                if (!client || !settings.readyClients[data.token]) return;
 
-                            await channel.bulkDelete(nodeParameters.removeMessagesNumber).catch((e: any) => console.log(`${e}`, client));
+                const performAction = async () => {
+                    // remove messages
+                    if (nodeParameters.actionType === 'removeMessages') {
+                        const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
+                        if (!channel || !channel.isTextBased()) {
+                            ipc.server.emit(socket, `callback:send:action`, false);;
+                            return;
                         }
 
-                        // add or remove roles
-                        else if (['addRole', 'removeRole'].includes(nodeParameters.actionType)) {
-                            const guild = await client.guilds.cache.get(nodeParameters.guildId);
-                            if (!guild) {
-                                ipc.server.emit(socket, `callback:send:action`, false);
-                                return;
-                            }
+                        await channel.bulkDelete(nodeParameters.removeMessagesNumber).catch((e: any) => console.log(`${e}`, client));
+                    }
 
-                            const user = await client.users.fetch(nodeParameters.userId as string);
-                            const guildMember = await guild.members.fetch(user);
-                            const roles = guildMember.roles;
-
-                            // Split the roles that are set in the parameters into individual ones or initialize as empty if no roles are set.
-                            const roleUpdateIds = (typeof nodeParameters.roleUpdateIds === 'string' ? nodeParameters.roleUpdateIds.split(',') : nodeParameters.roleUpdateIds) ?? [];
-                            for (const roleId of roleUpdateIds) {
-                                if (!roles.cache.has(roleId) && nodeParameters.actionType === 'addRole')
-                                    roles.add(roleId);
-                                else if (roles.cache.has(roleId) && nodeParameters.actionType === 'removeRole')
-                                    roles.remove(roleId);
-                            }
+                    // add or remove roles
+                    else if (['addRole', 'removeRole'].includes(nodeParameters.actionType)) {
+                        const guild = await client.guilds.cache.get(nodeParameters.guildId);
+                        if (!guild) {
+                            ipc.server.emit(socket, `callback:send:action`, false);
+                            return;
                         }
-                    };
 
-                    await performAction();
-                    console.log("action done");
+                        const user = await client.users.fetch(nodeParameters.userId as string);
+                        const guildMember = await guild.members.fetch(user);
+                        const roles = guildMember.roles;
 
-                    ipc.server.emit(socket, `callback:send:action`, {
-                        action: nodeParameters.actionType,
-                    });
-                }
+                        // Split the roles that are set in the parameters into individual ones or initialize as empty if no roles are set.
+                        const roleUpdateIds = (typeof nodeParameters.roleUpdateIds === 'string' ? nodeParameters.roleUpdateIds.split(',') : nodeParameters.roleUpdateIds) ?? [];
+                        for (const roleId of roleUpdateIds) {
+                            if (!roles.cache.has(roleId) && nodeParameters.actionType === 'addRole')
+                                roles.add(roleId);
+                            else if (roles.cache.has(roleId) && nodeParameters.actionType === 'removeRole')
+                                roles.remove(roleId);
+                        }
+                    }
+                };
+
+                await performAction();
+                console.log("action done");
+
+                ipc.server.emit(socket, `callback:send:action`, {
+                    action: nodeParameters.actionType,
+                });
 
             } catch (e) {
                 console.log(`${e}`);
@@ -616,72 +648,76 @@ export default function () {
         });
 
 
-        ipc.server.on('send:confirmation', async (nodeParameters: any, socket: any) => {
+        ipc.server.on('send:confirmation', async (data: {token: string, nodeParameters: any}, socket: any) => {
             try {
-                if (settings.ready) {
-                    // fetch channel
-                    const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
-                    if (!channel || !channel.isTextBased()) return;
+                console.log(`send confirmation for ${data.token}`, data.nodeParameters);
+                
+                const client = settings.clientMap[data.token];
+                const nodeParameters = data.nodeParameters;
+                if (!client || !settings.readyClients[data.token]) return;
+ 
+                // fetch channel
+                const channel = <TextChannel>client.channels.cache.get(nodeParameters.channelId);
+                if (!channel || !channel.isTextBased()) return;
 
-                    let confirmationMessage: Message | null = null;
+                let confirmationMessage: Message | null = null;
 
-                    let collectorTimeout = 60 * 1000; // 1 minute
-                    if (nodeParameters.additionalConfirmationFields.timeout > 0) {
-                        collectorTimeout = parseInt(nodeParameters.additionalConfirmationFields.timeout) * 1000;
-                    }
+                let collectorTimeout = 60 * 1000; // 1 minute
+                if (nodeParameters.additionalConfirmationFields.timeout > 0) {
+                    collectorTimeout = parseInt(nodeParameters.additionalConfirmationFields.timeout) * 1000;
+                }
 
-                    // prepare embed messages, if they are set by the client
-                    const confirmed = await new Promise<Boolean | null>(async resolve => {
-                        const preparedMessage = prepareMessage(nodeParameters);
-                        // @ts-ignore
-                        prepareMessage.ephemeral = true;
+                // prepare embed messages, if they are set by the client
+                const confirmed = await new Promise<Boolean | null>(async resolve => {
+                    const preparedMessage = prepareMessage(nodeParameters);
+                    // @ts-ignore
+                    prepareMessage.ephemeral = true;
 
-                        const collector = channel.createMessageComponentCollector({
-                            max: 1, // The number of times a user can click on the button
-                            time: collectorTimeout, // The amount of time the collector is valid for in milliseconds,
-                        });
-                        let isResolved = false;
-                        collector.on("collect", (interaction) => {
+                    const collector = channel.createMessageComponentCollector({
+                        max: 1, // The number of times a user can click on the button
+                        time: collectorTimeout, // The amount of time the collector is valid for in milliseconds,
+                    });
+                    let isResolved = false;
+                    collector.on("collect", (interaction) => {
 
-                            if (interaction.customId === "yes") {
-                                interaction.message.delete();
-                                isResolved = true;
-                                return resolve(true);
-                            } else if (interaction.customId === "no") {
-                                interaction.message.delete();
-                                isResolved = true;
-                                return resolve(false);
-                            }
-
+                        if (interaction.customId === "yes") {
                             interaction.message.delete();
                             isResolved = true;
-                            resolve(null);
-                        });
+                            return resolve(true);
+                        } else if (interaction.customId === "no") {
+                            interaction.message.delete();
+                            isResolved = true;
+                            return resolve(false);
+                        }
 
-                        collector.on("end", (collected) => {
-                            if (!isResolved)
-                                resolve(null);
-                            confirmationMessage?.delete();
-                            throw Error("Confirmed message could not be resolved");
-                        });
-
-                        preparedMessage.components = [new ActionRowBuilder().addComponents([
-                            new ButtonBuilder()
-                                .setCustomId(`yes`)
-                                .setLabel('Yes')
-                                .setStyle(ButtonStyle.Success),
-                            new ButtonBuilder()
-                                .setCustomId('no')
-                                .setLabel('No')
-                                .setStyle(ButtonStyle.Danger),
-                        ])];
-
-                        confirmationMessage = await channel.send(preparedMessage);
+                        interaction.message.delete();
+                        isResolved = true;
+                        resolve(null);
                     });
 
-                    console.log("sending callback to node ", confirmed);
-                    ipc.server.emit(socket, 'callback:send:confirmation', { confirmed: confirmed, success: true });
-                }
+                    collector.on("end", (collected) => {
+                        if (!isResolved)
+                            resolve(null);
+                        confirmationMessage?.delete();
+                        throw Error("Confirmed message could not be resolved");
+                    });
+
+                    preparedMessage.components = [new ActionRowBuilder().addComponents([
+                        new ButtonBuilder()
+                            .setCustomId(`yes`)
+                            .setLabel('Yes')
+                            .setStyle(ButtonStyle.Success),
+                        new ButtonBuilder()
+                            .setCustomId('no')
+                            .setLabel('No')
+                            .setStyle(ButtonStyle.Danger),
+                    ])];
+
+                    confirmationMessage = await channel.send(preparedMessage);
+                });
+
+                console.log("sending callback to node ", confirmed);
+                ipc.server.emit(socket, 'callback:send:confirmation', { confirmed: confirmed, success: true });
             } catch (e) {
                 console.log(`${e}`);
                 ipc.server.emit(socket, 'callback:send:confirmation', { confirmed: null, success: true });
