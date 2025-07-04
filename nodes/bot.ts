@@ -90,6 +90,29 @@ export default function () {
             }
         });
 
+        client.on('guildMemberUpdate', (oldMember, newMember) => {
+            const triggerMap = settings.triggerNodes[token];
+            for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
+                try {
+                    if ('user-update' !== parameters.type)
+                        continue;
+
+                    if (parameters.guildIds.length && !parameters.guildIds.includes(oldMember.guild.id))
+                        continue;
+
+                    ipc.server.emit(parameters.socket, 'guildMemberUpdate', {
+                        oldMember: oldMember,
+                        newMember: newMember,
+                        guild: oldMember.guild,
+                        nodeId: nodeId
+                    });
+
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
         client.on('messageReactionAdd', async (messageReaction, user) => {
             let message : any = null;
             const triggerMap = settings.triggerNodes[token];
@@ -702,14 +725,16 @@ export default function () {
                         throw Error("Confirmed message could not be resolved");
                     });
 
+                    const yesLabel = nodeParameters.additionalConfirmationFields.yesLabel || 'Yes';
+                    const noLabel = nodeParameters.additionalConfirmationFields.noLabel || 'No';
                     preparedMessage.components = [new ActionRowBuilder().addComponents([
                         new ButtonBuilder()
                             .setCustomId(`yes`)
-                            .setLabel('Yes')
+                            .setLabel(yesLabel)
                             .setStyle(ButtonStyle.Success),
                         new ButtonBuilder()
                             .setCustomId('no')
-                            .setLabel('No')
+                            .setLabel(noLabel)
                             .setStyle(ButtonStyle.Danger),
                     ])];
 

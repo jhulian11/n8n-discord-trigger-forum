@@ -52,6 +52,11 @@ export const options: INodeProperties[] = [
 				value: 'user-leave',
 				description: 'When a user leaves the server',
 			},
+      {
+				name: 'User Update',
+				value: 'user-update',
+				description: 'When a user is updated on the server (i.e. new role, removed role, nickname).',
+			},
     ],
     default: 'message',
     description: 'Type of event to listen to. User events must specify a channel to listen to if you want to use a placeholder or the option "send to the trigger channel" in a Discord Send node.',
@@ -63,7 +68,7 @@ export const options: INodeProperties[] = [
     type: 'multiOptions',
     displayOptions: {
       show: {
-        type: ['message', 'user-join', 'user-leave', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update'],
+        type: ['message', 'user-join', 'user-leave', 'user-update', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update'],
       },
     },
     typeOptions: {
@@ -246,5 +251,5 @@ export const options: INodeProperties[] = [
         description: "Whether this node needs to have at least one attachment to be triggered",
       },
     ],
-  }
+  },
 ];

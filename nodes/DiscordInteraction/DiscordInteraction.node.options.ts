@@ -452,6 +452,20 @@ export const options: INodeProperties[] = [
         default: 60,
         description: "Timeout for the confirmation message. If the user does not respond within this time, the interaction will be considered as expired.",
       },
+      {
+        displayName: 'Yes Button Label',
+        name: 'yesLabel',
+        type: 'string',
+        default: '',
+        description: 'Optional custom label for the "Yes" button',
+      },
+      {
+        displayName: 'No Button Label',
+        name: 'noLabel',
+        type: 'string',
+        default: '',
+        description: 'Optional custom label for the "No" button',
+       },
     ],									
   }
 ];

@@ -71,6 +71,7 @@ For more help on setting up n8n workflows, check the [Try it out documentation](
 
 ## Version history
 
+- **v0.8.0**: Add GuildMemberUpdate trigger, add option to rename confirm button choices.
 - **v0.7.0**: Add multiclient support. Multiple credentials across multiple workflows are now possible.
 - **v0.6.0**: Add direct message support (Thank you [Fank](https://github.com/Fank)) 
 - **v0.5.1**: Add additional timeout field for confirmation message

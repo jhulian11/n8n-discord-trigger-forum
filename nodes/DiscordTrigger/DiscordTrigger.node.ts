@@ -156,6 +156,23 @@ export class DiscordTrigger implements INodeType {
                 }
             });
 
+            ipc.of.bot.on('guildMemberUpdate', ({oldMember, newMember, guild, nodeId}) => {
+                if( this.getNode().id === nodeId) {
+
+                    const addPrefix = (obj: any, prefix: string) =>
+                        Object.fromEntries(Object.entries(obj).map(([key, value]) => [`${prefix}${key.charAt(0).toUpperCase()}${key.slice(1)}`, value]));
+
+                    const mergedGuildMemberUpdateOptions: any = {
+                        ...addPrefix(oldMember, "old"),
+                        ...addPrefix(newMember, "new"),
+                        ...addPrefix(guild, "guild"),
+                    };
+
+                    this.emit([
+                        this.helpers.returnJsonArray(mergedGuildMemberUpdateOptions),
+                    ]);
+                }
+            });
 
             ipc.of.bot.on('messageReactionAdd', ({messageReaction, message, user, guild, nodeId}) => {
                 if( this.getNode().id === nodeId) {
