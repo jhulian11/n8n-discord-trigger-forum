@@ -4,6 +4,7 @@ import {
     type ITriggerFunctions,
     type ITriggerResponse,
     type INodePropertyOptions,
+    NodeConnectionType,
     NodeOperationError,
 } from 'n8n-workflow';
 import { options } from './DiscordTrigger.node.options';
@@ -24,17 +25,17 @@ if (!process.send) bot();
 
 export class DiscordTrigger implements INodeType {
     description: INodeTypeDescription = {
-        displayName: 'Discord Trigger',
+        displayName: 'Discord Trigger JP',
         name: 'discordTrigger',
         group: ['trigger', 'discord'],
         version: 1,
-        description: 'Discord Trigger on message',
+        description: 'Discord Trigger on message JP',
         defaults: {
-            name: 'Discord Trigger',
+            name: 'Discord Trigger JP',
         },
         icon: 'file:discord-logo.svg',
         inputs: [],
-        outputs: ['main'],
+        outputs: [NodeConnectionType.Main],
         credentials: [
             {
                 name: 'discordBotTriggerApi',

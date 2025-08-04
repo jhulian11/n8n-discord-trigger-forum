@@ -114,6 +114,8 @@ export default function () {
         });
 
         client.on('messageReactionAdd', async (messageReaction, user) => {
+            console.log('messageReactionAdd');
+            
             let message : any = null;
             const triggerMap = settings.triggerNodes[token];
             for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
@@ -459,7 +461,6 @@ export default function () {
             }
         });
 
-
         ipc.server.on('list:roles', (data: {guildIds: string[], token: string}, socket: any) => {
             try {
                  const client = settings.clientMap[data.token];
@@ -484,8 +485,6 @@ export default function () {
             }
         });
 
-
-
         ipc.server.on('list:guilds', (data: { token: string }, socket: any) => {
             try {
                 const client = settings.clientMap[data.token];
@@ -504,8 +503,6 @@ export default function () {
                 console.log(`${e}`);
             }
         });
-
-
 
         ipc.server.on('list:channels', (data: {guildIds: string[], token: string}, socket: any) => {
             try {
@@ -532,9 +529,6 @@ export default function () {
                 console.log(`${e}`);
             }
         });
-
-
-
 
         ipc.server.on('credentials', (data: ICredentials, socket: any) => {
             const { token, clientId } = data;
@@ -615,7 +609,6 @@ export default function () {
             }
         });
 
-
         ipc.server.on('send:action', async (data: {token: string, nodeParameters: IDiscordNodeActionParameters}, socket: any) => {
             try {
                 const client = settings.clientMap[data.token];
@@ -669,7 +662,6 @@ export default function () {
                 ipc.server.emit(socket, `callback:send:action`, false);
             }
         });
-
 
         ipc.server.on('send:confirmation', async (data: {token: string, nodeParameters: any}, socket: any) => {
             try {

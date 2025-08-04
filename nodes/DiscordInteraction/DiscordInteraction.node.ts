@@ -7,6 +7,7 @@ import {
     type INodeParameters,
     INodeOutputConfiguration,
     NodeOperationError,
+    NodeConnectionType,
 } from 'n8n-workflow';
 import { options } from './DiscordInteraction.node.options';
 import ipc from 'node-ipc';
@@ -75,12 +76,12 @@ const configuredOutputs = (parameters: INodeParameters) => {
 
     if (mode === 'confirm') {
         return [
-            { displayName: 'confirm', type: 'main' },
-            { displayName: 'cancel', type: 'main' },
-            { displayName: 'no response', type: 'main' },
+            { displayName: 'confirm', type: NodeConnectionType.Main },
+            { displayName: 'cancel', type: NodeConnectionType.Main },
+            { displayName: 'no response', type: NodeConnectionType.Main },
         ] as INodeOutputConfiguration[];
     } else {
-        return [{ type: 'main' }] as INodeOutputConfiguration[];
+        return [{ type: NodeConnectionType.Main }] as INodeOutputConfiguration[];
     }
 };
 
@@ -96,7 +97,7 @@ export class DiscordInteraction implements INodeType {
             name: 'Discord Interaction',
         },
         icon: 'file:discord-logo.svg',
-        inputs: ['main'],
+        inputs: [NodeConnectionType.Main],
         outputs: `={{(${configuredOutputs})($parameter)}}`,
         credentials: [
             {
