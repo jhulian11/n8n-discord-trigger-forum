@@ -13,6 +13,11 @@ export const options: INodeProperties[] = [
         description: 'When a direct message is sent to the bot',
       },
       {
+        name: 'Forum Post Create',
+        value: 'forum-post-create',
+        description: 'When a new post is created in a forum channel',
+      },
+      {
         name: 'Message',
         value: 'message',
         description: 'When a message is sent in the selected channels',
@@ -68,7 +73,7 @@ export const options: INodeProperties[] = [
     type: 'multiOptions',
     displayOptions: {
       show: {
-        type: ['message', 'user-join', 'user-leave', 'user-update', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update'],
+        type: ['message', 'user-join', 'user-leave', 'user-update', 'message-reaction-add', 'message-reaction-remove', 'role-create', 'role-delete', 'role-update', 'forum-post-create'],
       },
     },
     typeOptions: {
@@ -88,7 +93,7 @@ export const options: INodeProperties[] = [
     },
     displayOptions: {
       show: {
-        type: ['message', 'message-reaction-add', 'message-reaction-remove'],
+        type: ['message', 'message-reaction-add', 'message-reaction-remove', 'forum-post-create'],
       },
     },
     default: [],
@@ -102,7 +107,7 @@ export const options: INodeProperties[] = [
     type: 'multiOptions',
     displayOptions: {
       show: {
-        type: ['message', 'message-reaction-add', 'message-reaction-remove'],
+        type: ['message', 'message-reaction-add', 'message-reaction-remove', 'forum-post-create'],
       },
     },
     typeOptions: {

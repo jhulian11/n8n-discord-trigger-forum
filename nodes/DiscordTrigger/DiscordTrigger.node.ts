@@ -25,11 +25,11 @@ if (!process.send) bot();
 
 export class DiscordTrigger implements INodeType {
     description: INodeTypeDescription = {
-        displayName: 'Discord Trigger JP',
+        displayName: 'Discord Trigger JP2',
         name: 'discordTrigger',
         group: ['trigger', 'discord'],
         version: 1,
-        description: 'Discord Trigger on message JP',
+        description: 'Discord Trigger on message JP2',
         defaults: {
             name: 'Discord Trigger JP',
         },
@@ -140,6 +140,41 @@ export class DiscordTrigger implements INodeType {
                     ]);
                 }
             });
+
+            ipc.of.bot.on('forumPostCreate', ({ thread, message, owner, guild, nodeId }) => {
+                console.log('IPC');
+                console.log('thread',thread);
+                console.log('message',message);
+                console.log('owner',owner);
+                console.log('guild',guild);
+                console.log('nodeId',nodeId);
+                
+                if (this.getNode().id === nodeId) {
+                    const forumPostCreateOptions: any = {
+                        threadId: thread?.id,
+                        threadTitle: thread?.name,
+                        messageId: message.id,
+                        content: message.content,
+                        guildId: guild?.id,
+                        channelId: thread?.id ?? message.channelId,
+                        authorId: owner.id,
+                        authorName: owner.username,
+                        timestamp: message.createdTimestamp,
+                        listenValue: this.getNodeParameter('value', ''),
+                        authorIsBot: owner.bot || owner.system,
+                    };
+
+                    this.emit([
+                        this.helpers.returnJsonArray(forumPostCreateOptions),
+                    ]);
+                    console.log('foi1');
+
+                }
+
+                console.log('foi');
+                
+            });
+
 
             ipc.of.bot.on('guildMemberAdd', ({guildMember, guild, user, nodeId}) => {
                 if( this.getNode().id === nodeId) {
