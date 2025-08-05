@@ -4,7 +4,6 @@ import {
     type ITriggerFunctions,
     type ITriggerResponse,
     type INodePropertyOptions,
-    NodeConnectionType,
     NodeOperationError,
 } from 'n8n-workflow';
 import { options } from './DiscordTrigger.node.options';
@@ -20,12 +19,15 @@ import {
 } from '../helper';
 import settings from '../settings';
 
+import type { NodeConnectionType } from 'n8n-workflow';
+
+
 // we start the bot if we are in the main process
 if (!process.send) bot();
 
 export class DiscordTrigger implements INodeType {
     description: INodeTypeDescription = {
-        displayName: 'Discord Trigger JP2',
+        displayName: 'Discord Trigger JP2 Trigger',
         name: 'discordTrigger',
         group: ['trigger', 'discord'],
         version: 1,
@@ -35,7 +37,7 @@ export class DiscordTrigger implements INodeType {
         },
         icon: 'file:discord-logo.svg',
         inputs: [],
-        outputs: [NodeConnectionType.Main],
+        outputs: ['main'] as NodeConnectionType[],
         credentials: [
             {
                 name: 'discordBotTriggerApi',
