@@ -71,6 +71,7 @@ For more help on setting up n8n workflows, check the [Try it out documentation](
 
 ## Version history
 
+- **v0.8.1**: Added support for triggering workflows when a new post is created in a Discord forum thread.
 - **v0.8.0**: Add GuildMemberUpdate trigger, add option to rename confirm button choices.
 - **v0.7.0**: Add multiclient support. Multiple credentials across multiple workflows are now possible.
 - **v0.6.0**: Add direct message support (Thank you [Fank](https://github.com/Fank)) 
@@ -85,3 +86,10 @@ For more help on setting up n8n workflows, check the [Try it out documentation](
 - **v0.2.7**: A second node Discord Interaction is added to send a message with the same credentials. Additionally roles of users can be added or removed based on interaction.
 - **v0.1.5**: Initial release with message triggers and channel/role fetching capabilities.
 
+
+
+## Fork por Jhulian
+
+Este é um fork do pacote [n8n-nodes-discord-trigger](https://www.npmjs.com/package/n8n-nodes-discord-trigger), criado por [katerlol](https://github.com/katerlol), com adições de suporte para mensagens em Fóruns do Discord.
+
+Repositório original: https://github.com/katerlol/n8n-nodes-discord-trigger

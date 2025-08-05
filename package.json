@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-discord-trigger-jp",
-  "version": "0.8.01",
-  "description": "A node that triggers a workflow whenever a message from discord is sent. (Jhulian fork)",
+  "version": "0.8.1",
+  "description": "A node that triggers a workflow whenever a message from discord is sent. (Jhulian fork forum feature)",
   "keywords": [
     "n8n",
     "node",

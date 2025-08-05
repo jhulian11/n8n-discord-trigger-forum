@@ -107,7 +107,7 @@ export class DiscordTrigger implements INodeType {
                     console.log("received messageCreate event", message.id);
 
                     const messageCreateOptions : any = {
-                        id: message.id,
+                        id: message.id, 
                         content: message.content,
                         guildId: guild?.id,
                         channelId: message.channelId,
@@ -142,17 +142,15 @@ export class DiscordTrigger implements INodeType {
             });
 
             ipc.of.bot.on('forumPostCreate', ({ thread, message, owner, guild, nodeId }) => {
-                console.log('IPC');
                 console.log('thread',thread);
                 console.log('message',message);
-                console.log('owner',owner);
-                console.log('guild',guild);
                 console.log('nodeId',nodeId);
                 
                 if (this.getNode().id === nodeId) {
                     const forumPostCreateOptions: any = {
                         threadId: thread?.id,
                         threadTitle: thread?.name,
+                        tags: thread?.appliedTags,
                         messageId: message.id,
                         content: message.content,
                         guildId: guild?.id,
@@ -167,12 +165,7 @@ export class DiscordTrigger implements INodeType {
                     this.emit([
                         this.helpers.returnJsonArray(forumPostCreateOptions),
                     ]);
-                    console.log('foi1');
-
                 }
-
-                console.log('foi');
-                
             });
 
 

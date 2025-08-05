@@ -313,36 +313,26 @@ export default function () {
 
         client.on('threadCreate', async (thread) => {
             console.log('thread',thread);
-            console.log('thread.parent?.type',thread.parent?.type);
-            console.log('thread?.type',thread?.type);
             
             try {
                 if (thread.parent?.type !== ChannelType.GuildForum && thread?.type !== ChannelType.PublicThread) return;
 
                 const triggerMap = settings.triggerNodes[token];
-                console.log('aqui1',triggerMap);
 
                 for (const [nodeId, parameters] of Object.entries(triggerMap) as [string, any]) {
                     try {
-                        console.log('aqui2,',parameters.type);
-
                         if ('forum-post' !== parameters.type && 'forum-post-create' !== parameters.type) continue;
-
-                        console.log('aqui2.1');
 
                         if (parameters.guildIds.length && thread.guild && !parameters.guildIds.includes(thread.guild.id))
                             continue;
-                        console.log('aqui2.2');
 
                         if (parameters.channelIds.length && !parameters.channelIds.includes(thread.parentId ?? ''))
                             continue;
-                        console.log('aqui3');
 
                         const starterMessage = await thread.fetchStarterMessage();
                         const ownerMember = await thread.fetchOwner();
                         if (!ownerMember) continue;
                         let ownerRoles: string[] = [];
-                        console.log('aqui4');
 
                         try {
                             const member = await thread.guild.members.fetch(ownerMember.id);
@@ -353,11 +343,10 @@ export default function () {
                             const hasRole = parameters.roleIds.some((role: any) => ownerRoles.includes(role));
                             if (!hasRole) continue;
                         }
-                        console.log('starterMessage',starterMessage);
                         
                         ipc.server.emit(parameters.socket, 'forumPostCreate', {
                             thread,
-                            message:starterMessage,
+                            message: starterMessage,
                             owner: ownerMember,
                             guild: thread.guild,
                             nodeId: nodeId,
